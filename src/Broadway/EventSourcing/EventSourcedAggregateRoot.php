@@ -94,7 +94,6 @@ abstract class EventSourcedAggregateRoot implements AggregateRootInterface
         $this->handle($event);
 
         foreach ($this->getChildEntities() as $entity) {
-            $entity->registerAggregateRoot($this);
             $entity->handleRecursively($event);
         }
     }

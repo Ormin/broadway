@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Broadway\EventSourcing;
 
+use Broadway\Domain\DomainEventStream;
+use Broadway\Domain\DomainMessage;
+use Broadway\Domain\Metadata;
 use PHPUnit\Framework\TestCase;
 
 class SimpleEventSourcedEntityTest extends TestCase
@@ -20,122 +23,36 @@ class SimpleEventSourcedEntityTest extends TestCase
     /**
      * @test
      */
-    public function it_handles_events_recursively()
+    public function it_knows_of_aggregate_root_without_any_prior_events()
     {
-        $aggregateRoot = new Aggregate();
-        $child = new Entity();
-
-        $aggregateRoot->addChildEntity($child);
-
-        $mock = $this->getMockBuilder('Broadway\EventSourcing\Entity')
-            ->setMethods(['handleRecursively'])
-            ->getMock();
-
-        $mock->expects($this->once())
-            ->method('handleRecursively');
-
-        $child->addChildEntity($mock);
-
-        $aggregateRoot->doApply();
-    }
-
-    /**
-     * @test
-     */
-    public function it_applies_events_to_aggregate_root()
-    {
-        $aggregateRoot = $this->getMockBuilder('Broadway\EventSourcing\Aggregate')
-            ->setMethods(['apply'])
-            ->getMock();
-
-        $aggregateRoot->expects($this->once())
-            ->method('apply');
-
-        $child = new Entity();
-        $grandChild = new Entity();
-
-        $aggregateRoot->addChildEntity($child);
-
-        $child->addChildEntity($grandChild);
-        $aggregateRoot->doHandleRecursively();  // Initialize tree structure
-
-        $grandChild->doApply();
-    }
-
-    /**
-     * @test
-     */
-    public function it_can_only_have_one_root()
-    {
-        $root1 = new Aggregate();
-        $root2 = new Aggregate();
-
-        $entity = new Entity();
-
-        $root1->addChildEntity($entity);
-        $root2->addChildEntity($entity);
-
-        $this->expectException(AggregateRootAlreadyRegisteredException::class);
-
-        $root1->doHandleRecursively();
-        $root2->doHandleRecursively();
+        $aggregateRoot = new MyTestEntityAggregateRoot();
+        $aggregateRoot->importantFunction();
+        $this->assertEquals(1, count($aggregateRoot->getUncommittedEvents()));
     }
 }
 
-class Aggregate extends EventSourcedAggregateRoot
+class MyTestEntityAggregateRoot extends EventSourcedAggregateRoot
 {
-    private $children = [];
-
-    protected function getChildEntities(): array
-    {
-        return $this->children;
-    }
-
-    public function addChildEntity($entity)
-    {
-        $this->children[] = $entity;
-    }
-
-    public function doApply()
-    {
-        $this->apply(new Event());
-    }
-
-    public function doHandleRecursively()
-    {
-        $this->handleRecursively(new Event());
-    }
+    private $entity;
 
     public function getAggregateRootId(): string
     {
-        return '42';
+        return 'y0l0';
     }
+
+    public function importantFunction()
+    {
+        $this->entity = new MyTestEntity($this);
+        $this->entity->importantFunction();
+    }
+      
 }
 
-class Entity extends SimpleEventSourcedEntity
+class MyTestEntity extends SimpleEventSourcedEntity
 {
-    private $children = [];
-
-    protected function getChildEntities(): array
+    public function importantFunction()
     {
-        return $this->children;
-    }
-
-    public function addChildEntity($entity)
-    {
-        $this->children[] = $entity;
-    }
-
-    protected function applyEvent($event)
-    {
-    }
-
-    public function doApply()
-    {
-        $this->apply(new Event());
+	$this->apply(new AggregateEvent());
     }
 }
 
-class Event
-{
-}

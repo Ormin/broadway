@@ -23,6 +23,11 @@ abstract class SimpleEventSourcedEntity implements EventSourcedEntity
      */
     private $aggregateRoot;
 
+    public function __construct(EventSourcedAggregateRoot $root)
+    {
+	$this->aggregateRoot = $root;
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -31,21 +36,8 @@ abstract class SimpleEventSourcedEntity implements EventSourcedEntity
         $this->handle($event);
 
         foreach ($this->getChildEntities() as $entity) {
-            $entity->registerAggregateRoot($this->aggregateRoot);
             $entity->handleRecursively($event);
         }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function registerAggregateRoot(EventSourcedAggregateRoot $aggregateRoot): void
-    {
-        if (null !== $this->aggregateRoot && $this->aggregateRoot !== $aggregateRoot) {
-            throw new AggregateRootAlreadyRegisteredException();
-        }
-
-        $this->aggregateRoot = $aggregateRoot;
     }
 
     /**
